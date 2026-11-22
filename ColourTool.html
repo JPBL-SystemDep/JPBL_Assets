@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>パワプロ カラー変換ツール</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f4f6f8;
+      --panel: #ffffff;
+      --text: #20242a;
+      --muted: #65707d;
+      --line: #d9dfe6;
+      --accent: #1769e0;
+      --danger: #c62828;
+      --shadow: 0 12px 32px rgba(0,0,0,.08);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #11151a;
+        --panel: #1a2027;
+        --text: #eef2f6;
+        --muted: #aab3bd;
+        --line: #343d47;
+        --accent: #6aa7ff;
+        --danger: #ff8a80;
+        --shadow: 0 12px 32px rgba(0,0,0,.28);
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 28px 16px 48px;
+    }
+    h1 { margin: 0 0 8px; font-size: clamp(1.7rem, 4vw, 2.5rem); }
+    .lead { margin: 0 0 24px; color: var(--muted); line-height: 1.7; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+    @media (max-width: 760px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+    .card h2 { margin: 0 0 14px; font-size: 1.15rem; }
+    label { display: block; font-weight: 700; margin: 12px 0 6px; }
+    input, select, button {
+      width: 100%;
+      font: inherit;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      padding: 11px 12px;
+      background: transparent;
+      color: inherit;
+    }
+    select option {
+      background: var(--panel);
+      color: var(--text);
+    }
+    input[type="color"] {
+      padding: 4px;
+      height: 48px;
+      cursor: pointer;
+    }
+    input:focus, select:focus, button:focus {
+      outline: 3px solid color-mix(in srgb, var(--accent) 25%, transparent);
+      border-color: var(--accent);
+    }
+    button {
+      margin-top: 14px;
+      border: 0;
+      background: var(--accent);
+      color: white;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    button.secondary {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--line);
+    }
+    .row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0,1fr));
+      gap: 10px;
+    }
+    .row.two { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .preview {
+      height: 120px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      margin-bottom: 14px;
+      background: #888;
+    }
+    .result {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px 12px;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .result:last-child { border-bottom: 0; }
+    .result .name { color: var(--muted); }
+    .result .value {
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-weight: 800;
+      text-align: right;
+      word-break: break-all;
+    }
+    .notice {
+      margin-top: 14px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: color-mix(in srgb, var(--accent) 10%, transparent);
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: .92rem;
+    }
+    .error {
+      min-height: 1.4em;
+      color: var(--danger);
+      margin-top: 8px;
+      font-weight: 700;
+    }
+    .small { color: var(--muted); font-size: .88rem; line-height: 1.6; }
+    footer { margin-top: 22px; color: var(--muted); font-size: .85rem; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>パワプロ カラー変換ツール</h1>
+  <p class="lead">カラーコード・一般RGB・旧パワプロRGBから、一般HSVとパワプロHSVへ変換します。</p>
+
+  <div class="grid">
+    <section class="card">
+      <h2>入力</h2>
+
+      <label for="mode">入力形式</label>
+      <select id="mode">
+        <option value="hex">カラーコード</option>
+        <option value="rgb">一般RGB（0〜255）</option>
+        <option value="powerRgb">旧パワプロRGB（0〜31）</option>
+      </select>
+
+      <div id="hexInputs">
+        <label for="picker">カラーピッカー</label>
+        <input id="picker" type="color" value="#683890">
+        <label for="hex">カラーコード</label>
+        <input id="hex" type="text" value="#683890" inputmode="text" spellcheck="false">
+      </div>
+
+      <div id="rgbInputs" hidden>
+        <div class="row">
+          <div><label for="r">R</label><input id="r" type="number" min="0" max="255" value="104"></div>
+          <div><label for="g">G</label><input id="g" type="number" min="0" max="255" value="56"></div>
+          <div><label for="b">B</label><input id="b" type="number" min="0" max="255" value="144"></div>
+        </div>
+      </div>
+
+      <div id="powerRgbInputs" hidden>
+        <div class="row">
+          <div><label for="pr">R</label><input id="pr" type="number" min="0" max="31" value="13"></div>
+          <div><label for="pg">G</label><input id="pg" type="number" min="0" max="31" value="7"></div>
+          <div><label for="pb">B</label><input id="pb" type="number" min="0" max="31" value="18"></div>
+        </div>
+      </div>
+
+      <label for="roundMode">丸め方</label>
+      <select id="roundMode">
+        <option value="round">四捨五入</option>
+        <option value="floor">切り捨て</option>
+        <option value="ceil">切り上げ</option>
+      </select>
+
+      <button id="convert">変換する</button>
+      <div id="error" class="error" aria-live="polite"></div>
+
+      <div class="notice">
+        記事の換算基準に合わせ、色あいは0〜31、鮮やかさと明るさは0〜15へ変換します。
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>変換結果</h2>
+      <div id="preview" class="preview" aria-label="色のプレビュー"></div>
+
+      <div class="result"><span class="name">カラーコード</span><span id="outHex" class="value">-</span></div>
+      <div class="result"><span class="name">一般RGB</span><span id="outRgb" class="value">-</span></div>
+      <div class="result"><span class="name">一般HSV</span><span id="outHsv" class="value">-</span></div>
+      <div class="result"><span class="name">旧パワプロRGB相当</span><span id="outPowerRgb" class="value">-</span></div>
+      <div class="result"><span class="name">パワプロHSV</span><span id="outPowerHsv" class="value">-</span></div>
+
+      <button id="copy" class="secondary">結果をコピー</button>
+      <p id="copyStatus" class="small" aria-live="polite"></p>
+    </section>
+  </div>
+
+  <footer>
+    変換結果はゲーム内表示や画面環境によって見え方が少し異なるため、最終的には鮮やかさ・明るさを1段階ほど調整してください。
+  </footer>
+</main>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const mode = $("mode");
+  const groups = {
+    hex: $("hexInputs"),
+    rgb: $("rgbInputs"),
+    powerRgb: $("powerRgbInputs")
+  };
+
+  function clamp(n, min, max) {
+    return Math.min(max, Math.max(min, n));
+  }
+
+  function parseHex(value) {
+    let s = value.trim().replace(/^#/, "");
+    if (/^[0-9a-fA-F]{3}$/.test(s)) {
+      s = s.split("").map(c => c + c).join("");
+    }
+    if (!/^[0-9a-fA-F]{6}$/.test(s)) {
+      throw new Error("カラーコードは #RRGGBB または #RGB 形式で入力してください。");
+    }
+    return {
+      r: parseInt(s.slice(0, 2), 16),
+      g: parseInt(s.slice(2, 4), 16),
+      b: parseInt(s.slice(4, 6), 16)
+    };
+  }
+
+  function rgbToHex(r, g, b) {
+    return "#" + [r,g,b].map(v => clamp(Math.round(v),0,255).toString(16).padStart(2,"0")).join("").toUpperCase();
+  }
+
+  function rgbToHsv(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const d = max - min;
+    let h = 0;
+
+    if (d !== 0) {
+      if (max === r) h = 60 * (((g - b) / d) % 6);
+      else if (max === g) h = 60 * (((b - r) / d) + 2);
+      else h = 60 * (((r - g) / d) + 4);
+    }
+    if (h < 0) h += 360;
+
+    const s = max === 0 ? 0 : d / max;
+    const v = max;
+    return { h, s: s * 100, v: v * 100 };
+  }
+
+  function getRounder() {
+    const value = $("roundMode").value;
+    return value === "floor" ? Math.floor : value === "ceil" ? Math.ceil : Math.round;
+  }
+
+  function readRgb() {
+    if (mode.value === "hex") return parseHex($("hex").value);
+
+    if (mode.value === "rgb") {
+      const vals = ["r","g","b"].map(id => Number($(id).value));
+      if (vals.some(v => !Number.isFinite(v) || v < 0 || v > 255)) {
+        throw new Error("一般RGBは0〜255の範囲で入力してください。");
+      }
+      return { r: vals[0], g: vals[1], b: vals[2] };
+    }
+
+    const vals = ["pr","pg","pb"].map(id => Number($(id).value));
+    if (vals.some(v => !Number.isFinite(v) || v < 0 || v > 31)) {
+      throw new Error("旧パワプロRGBは0〜31の範囲で入力してください。");
+    }
+    // 記事の換算手順に合わせて ×8
+    return { r: vals[0] * 8, g: vals[1] * 8, b: vals[2] * 8 };
+  }
+
+  let latestText = "";
+
+  function convert() {
+    try {
+      $("error").textContent = "";
+      const rgb = readRgb();
+      const r = clamp(Math.round(rgb.r),0,255);
+      const g = clamp(Math.round(rgb.g),0,255);
+      const b = clamp(Math.round(rgb.b),0,255);
+      const hex = rgbToHex(r,g,b);
+      const hsv = rgbToHsv(r,g,b);
+      const round = getRounder();
+
+      // 記事の換算式：H×32/361、S・V×16/101
+      const ph = clamp(round(hsv.h * 32 / 361), 0, 31);
+      const ps = clamp(round(hsv.s * 16 / 101), 0, 15);
+      const pv = clamp(round(hsv.v * 16 / 101), 0, 15);
+
+      // 一般RGB -> 旧パワプロRGB相当。255を31へ線形変換。
+      const pR = clamp(round(r * 31 / 255), 0, 31);
+      const pG = clamp(round(g * 31 / 255), 0, 31);
+      const pB = clamp(round(b * 31 / 255), 0, 31);
+
+      $("preview").style.background = hex;
+      $("outHex").textContent = hex;
+      $("outRgb").textContent = `R ${r} / G ${g} / B ${b}`;
+      $("outHsv").textContent = `H ${hsv.h.toFixed(1)}° / S ${hsv.s.toFixed(1)}% / V ${hsv.v.toFixed(1)}%`;
+      $("outPowerRgb").textContent = `R ${pR} / G ${pG} / B ${pB}`;
+      $("outPowerHsv").textContent = `色あい ${ph} / 鮮やかさ ${ps} / 明るさ ${pv}`;
+
+      $("picker").value = hex.toLowerCase();
+      $("hex").value = hex;
+      latestText =
+`カラーコード: ${hex}
+一般RGB: R ${r} / G ${g} / B ${b}
+一般HSV: H ${hsv.h.toFixed(1)}° / S ${hsv.s.toFixed(1)}% / V ${hsv.v.toFixed(1)}%
+旧パワプロRGB相当: R ${pR} / G ${pG} / B ${pB}
+パワプロHSV: 色あい ${ph} / 鮮やかさ ${ps} / 明るさ ${pv}`;
+    } catch (e) {
+      $("error").textContent = e.message || "入力内容を確認してください。";
+    }
+  }
+
+  mode.addEventListener("change", () => {
+    Object.entries(groups).forEach(([key, el]) => el.hidden = key !== mode.value);
+    convert();
+  });
+
+  $("picker").addEventListener("input", e => {
+    $("hex").value = e.target.value.toUpperCase();
+    convert();
+  });
+  $("hex").addEventListener("input", () => {
+    try {
+      const {r,g,b} = parseHex($("hex").value);
+      $("picker").value = rgbToHex(r,g,b).toLowerCase();
+      convert();
+    } catch (_) {}
+  });
+
+  document.querySelectorAll("input, select").forEach(el => {
+    if (!["mode","picker","hex"].includes(el.id)) el.addEventListener("input", convert);
+  });
+  $("convert").addEventListener("click", convert);
+
+  $("copy").addEventListener("click", async () => {
+    if (!latestText) return;
+    try {
+      await navigator.clipboard.writeText(latestText);
+      $("copyStatus").textContent = "コピーしました。";
+    } catch (_) {
+      $("copyStatus").textContent = "コピーできませんでした。結果を選択してコピーしてください。";
+    }
+  });
+
+  convert();
+})();
+</script>
+</body>
+</html>
